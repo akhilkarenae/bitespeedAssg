@@ -12,6 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.sequelize = void 0;
 const dotenv_1 = __importDefault(require("dotenv"));
 const sequelize_1 = require("sequelize");
 const result = dotenv_1.default.config({ path: "./.env.dev" });
@@ -20,16 +21,17 @@ const dbUser = process.env.DB_USER;
 const dbHost = process.env.DB_HOST;
 const dbPassword = process.env.DB_PASSWORD;
 const dbPort = process.env.DB_PORT;
-console.log("db name: " + dbName, "db user: " + dbUser, "db host: " + dbHost, "db password: " + dbPassword, "db port: " + dbPort);
-const sequelize = new sequelize_1.Sequelize(dbName, dbUser, dbPassword, {
+// console.log("db name: "+dbName,"db user: "+dbUser,"db host: "+dbHost,"db password: "+dbPassword,"db port: "+dbPort)
+exports.sequelize = new sequelize_1.Sequelize(dbName, dbUser, dbPassword, {
     host: dbHost,
     port: dbPort,
     dialect: 'mysql'
 });
 const dbConnection = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        yield sequelize.authenticate();
-        console.log('Connection has been established successfully.');
+        yield exports.sequelize.authenticate();
+        yield exports.sequelize.sync({ force: true });
+        console.log('Database synchronized.');
     }
     catch (error) {
         console.error('Unable to connect to the database:', error);
