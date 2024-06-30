@@ -54,10 +54,10 @@ class ContactServices {
                     }
                     newContact = await ContactRepository.createContact({email,phoneNumber,linkedPrecedence:'primary'})
                 }
-                if(email){
+                if(email && !emails.includes(email)){
                     emails.push(email)
                 }
-                if(phoneNumber){
+                if(phoneNumber && !emails.includes(phoneNumber)){
                     phoneNumbers.push(phoneNumber)
                 }
                 const response = {
@@ -68,22 +68,22 @@ class ContactServices {
                 }
                 return response;
             }else if(primaryContactCount===1){
-                console.log("from 2")
                 emails.push(primaryContact.email);
                 phoneNumbers.push(primaryContact.phoneNumber);
+                // request has either of phoneNumber or email common to an existing contact but contains new info
+                let newContact: any;
+                if((email && !emails.includes(email)) || (phoneNumber && !phoneNumbers.includes(phoneNumber))){
+                    newContact = await ContactRepository.createContact({email,phoneNumber,linkedPrecedence:'secondary',linkedId:primaryContact.id})
+                } 
+
                 if(email && !emails.includes(email)){
-                    const newContact = await ContactRepository.createContact({email,phoneNumber,linkedPrecedence:'secondary',linkedId:primaryContact.id})
                     emails.push(email)
-                    if(phoneNumber){
-                        phoneNumbers.push(phoneNumber)
-                    }
-                    secondaryContactIds.push(newContact.id)
-                } else if(phoneNumber && !phoneNumbers.includes(phoneNumber)){
-                    const newContact = await ContactRepository.createContact({email,phoneNumber,linkedPrecedence:'secondary',linkedId:primaryContact.id})
-                    if(email){
-                        emails.push(email)
-                    }
+                }
+                if(phoneNumber && !emails.includes(phoneNumber)){
                     phoneNumbers.push(phoneNumber)
+                }
+
+                if(newContact && !emails.includes(newContact.id)){
                     secondaryContactIds.push(newContact.id)
                 }
                 const response = {
@@ -97,7 +97,7 @@ class ContactServices {
                 primaryContact = contacts[0];
                 for(const contact of contacts){
                     if(contact.id !== primaryContact.id && primaryContact.linkedPrecedence==='primary'){
-                        // turn newly created contact to secondary and oldest is primary
+                        // case with two contacts as primary turn contact oldest is primary and latest one is secondary
                         if(contact.createdAt<primaryContact.createdAt){
                             await ContactRepository.updateContactLinkedPrecedence(primaryContact.id,contact.id,'secondary')
                             // update the all the linkedId to new primary contact id
@@ -109,11 +109,11 @@ class ContactServices {
                             await ContactRepository.updateContactLinkedId(contact.id,primaryContact.id)
                         }
                     }
-                    if(contact.email){
+                    if(contact.email && !emails.includes(contact.email)){
                         emails.push(contact.email)
                     }
                     
-                    if(contact.phoneNumber){
+                    if(contact.phoneNumber && !emails.includes(contact.phoneNumber)){
                         phoneNumbers.push(contact.phoneNumber)
                     }
                     secondaryContactIds.push(contact.id)
@@ -128,9 +128,9 @@ class ContactServices {
                 return response;
             }
 
-        }catch(err){
+        }catch(err:any){
             console.log(err,"error")
-            // throw new Error(err);
+            throw new Error(err);
         }
     }
 

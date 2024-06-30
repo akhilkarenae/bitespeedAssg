@@ -49,8 +49,10 @@ class ContactServices {
                         secondaryContactIds.push(contact.id);
                     }
                 });
+                // if no primary contact exits with given email and phone number
                 if (primaryContactCount == 0) {
                     let newContact;
+                    // primary contact exits but diff from req email/phonember 
                     if (contacts.length > 0) {
                         newContact = yield contact_repository_1.default.createContact({ email, phoneNumber, linkedId: contacts[0].linkedId, linkedPrecedence: 'secondary' });
                         secondaryContactIds.push(newContact.id);
@@ -61,10 +63,10 @@ class ContactServices {
                         }
                         newContact = yield contact_repository_1.default.createContact({ email, phoneNumber, linkedPrecedence: 'primary' });
                     }
-                    if (email) {
+                    if (email && !emails.includes(email)) {
                         emails.push(email);
                     }
-                    if (phoneNumber) {
+                    if (phoneNumber && !emails.includes(phoneNumber)) {
                         phoneNumbers.push(phoneNumber);
                     }
                     const response = {
@@ -76,25 +78,30 @@ class ContactServices {
                     return response;
                 }
                 else if (primaryContactCount === 1) {
-                    console.log("from 2");
                     emails.push(primaryContact.email);
                     phoneNumbers.push(primaryContact.phoneNumber);
+                    // request has either of phoneNumber or email common to an existing contact but contains new info
+                    let newContact;
+                    if ((email && !emails.includes(email)) || (phoneNumber && !phoneNumbers.includes(phoneNumber))) {
+                        newContact = yield contact_repository_1.default.createContact({ email, phoneNumber, linkedPrecedence: 'secondary', linkedId: primaryContact.id });
+                    }
                     if (email && !emails.includes(email)) {
-                        const newContact = yield contact_repository_1.default.createContact({ email, phoneNumber, linkedPrecedence: 'secondary', linkedId: primaryContact.id });
                         emails.push(email);
-                        if (phoneNumber) {
-                            phoneNumbers.push(phoneNumber);
-                        }
-                        secondaryContactIds.push(newContact.id);
                     }
-                    else if (phoneNumber && !phoneNumbers.includes(phoneNumber)) {
-                        const newContact = yield contact_repository_1.default.createContact({ email, phoneNumber, linkedPrecedence: 'secondary', linkedId: primaryContact.id });
-                        if (email) {
-                            emails.push(email);
-                        }
+                    if (phoneNumber && !emails.includes(phoneNumber)) {
                         phoneNumbers.push(phoneNumber);
+                    }
+                    if (newContact && !emails.includes(newContact.id)) {
                         secondaryContactIds.push(newContact.id);
                     }
+                    // else if(phoneNumber && !phoneNumbers.includes(phoneNumber)){
+                    //     const newContact = await ContactRepository.createContact({email,phoneNumber,linkedPrecedence:'secondary',linkedId:primaryContact.id})
+                    // if(email){
+                    //     emails.push(email)
+                    // }
+                    //     phoneNumbers.push(phoneNumber)
+                    //     secondaryContactIds.push(newContact.id)
+                    // }
                     const response = {
                         primaryContatctId: primaryContact.id,
                         emails: emails,
@@ -107,20 +114,23 @@ class ContactServices {
                     primaryContact = contacts[0];
                     for (const contact of contacts) {
                         if (contact.id !== primaryContact.id && primaryContact.linkedPrecedence === 'primary') {
+                            // turn newly created contact to secondary and oldest is primary
                             if (contact.createdAt < primaryContact.createdAt) {
                                 yield contact_repository_1.default.updateContactLinkedPrecedence(primaryContact.id, contact.id, 'secondary');
+                                // update the all the linkedId to new primary contact id
                                 yield contact_repository_1.default.updateContactLinkedId(primaryContact.id, contact.id);
                                 primaryContact = contact;
                             }
                             else {
                                 yield contact_repository_1.default.updateContactLinkedPrecedence(contact.id, primaryContact.id, 'secondary');
+                                // update the all the linkedId to new primary contact id
                                 yield contact_repository_1.default.updateContactLinkedId(contact.id, primaryContact.id);
                             }
                         }
-                        if (contact.email) {
+                        if (contact.email && !emails.includes(contact.email)) {
                             emails.push(contact.email);
                         }
-                        if (contact.phoneNumber) {
+                        if (contact.phoneNumber && !emails.includes(contact.phoneNumber)) {
                             phoneNumbers.push(contact.phoneNumber);
                         }
                         secondaryContactIds.push(contact.id);
@@ -136,7 +146,7 @@ class ContactServices {
             }
             catch (err) {
                 console.log(err, "error");
-                // throw new Error(err);
+                throw new Error(err);
             }
         });
     }
